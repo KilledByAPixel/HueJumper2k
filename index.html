@@ -1,0 +1,646 @@
+<html>
+<!--
+
+HUE JUMPER - By Frank Force
+Low fi retro inspired endless runner in only 2 kilobytes!
+
+-->
+<title>Hue Jumper</title>
+<body bgcolor=#000>
+<canvas id=c style='touch-action:none;position:absolute;left:0px;top:0px;width:100%;height:100%'></canvas>
+<a hidden id=downloadLink></a>
+<script>
+    
+'use strict';
+    
+// debug settings
+let debug = 1;
+let usePointerLock = 1;
+
+// constants (will be replaced during minification)
+
+// draw settings
+const context = c.getContext('2d');   // canvas 2d context
+const drawDistance = 800;             // how many road segments to draw in front of player
+const cameraDepth = 1;                // FOV of camera (1 / Math.tan((fieldOfView/2) * Math.PI/180))
+const roadSegmentLength = 100;        // length of each road segment
+const roadWidth = 500;                // how wide is road
+const warningTrackWidth = 150;        // with of road plus warning track
+const dashLineWidth = 9;              // width of the dashed line in the road
+const maxPlayerX = 2e3;               // player can not move this far from center of road
+const mountainCount = 30;             // how many mountains are there
+    
+// player settings
+const playerHeight = 150;             // how high is player above ground
+const playerMaxSpeed = 300;           // limit max player speed
+const playerAccel = 1;                // player acceleration
+const playerBrake = -3;               // player acceleration when breaking
+const turnControl = .2;               // player turning rate
+const centripetal = .002;             // how much to pull player on turns
+const forwardSpeedDamping = .999;     // dampen player z speed
+const lateralSpeedDamping = .7;       // dampen player x speed
+const offRoadSpeedDamping = .98;      // more damping when off road
+const playerJumpSpeed = 25;           // z speed for jump
+const gravity = -1;                   // gravity to apply in y axis
+const playerBounce = 1.2;             // bounce elasticity (2 is full bounce, 1 is none)
+const pitchLerp = .1;                 // speed that camera pitch changes
+const playerSpringConstant = .01;     // spring players pitch
+const pitchSpringDamping = .9;        // dampen the pitch spring
+const playerCollisionSlow = .1;       // slow down from collisions
+const cameraHeadingScale = 2;         // scale of player angle to rotate camera
+const worldRotateScale = .00005;      // how much to rotate world around turns
+    
+// level settings
+const maxTime = 20;                   // time to start with
+const checkPointTime = 10;            // how much time for getting to checkpoint
+const checkPointDistance = 1e5;       // how far between checkpoints
+const checkpointMaxDifficulty = 9;    // how many checkpoints before max difficulty
+const roadEnd = 1e4;                  // how many sections until end of the road
+    
+// game variables  
+let playerPos;
+let playerVelocity;
+let playerPitch;
+let playerPitchSpring;
+let playerPitchSpringVelocity;
+let playerPitchRoad;
+let worldHeading;
+let road;
+let time;
+let startRandomSeed;
+let lastRoadPoint;
+let randomSeed;
+let nextCheckPoint;
+let playerTurnAmount;
+let hueShift;
+let airFrame;
+    
+// local variables
+let roadGenSectionDistance;
+let roadGenSectionDistanceMax;
+let roadGenTaper;
+let roadGenWaveFrequencyX;
+let roadGenWaveFrequencyY;
+let roadGenWaveScaleX;
+let roadGenWaveScaleY;
+let roadGenWidth;
+let playerRoadSegment;
+let playerRoadSegmentPercent;
+let playerRoadX;
+let playerRoadY;
+let roadPitch;
+let playerVelocityLast;
+let cameraHeading;
+let cameraOffset;
+let brightness;
+let horizon;
+let projectScale;
+let projectedPoints;
+let segment1;
+let segment2;
+let lighting;
+    
+// multi use local variables
+let x, y, z, i, j, w, p, d, g, a, s, p1, p2, o;
+                         
+function StartLevel()
+{ 
+    /////////////////////////////////////////////////////////////////////////////////////
+    // init game
+    /////////////////////////////////////////////////////////////////////////////////////
+    
+    // reset everything to 0
+    playerVelocity = new Vector3( playerPitchSpring = playerPitchSpringVelocity = playerPitchRoad =  
+        hueShift = roadGenSectionDistance = roadGenTaper = 
+        roadGenWaveFrequencyX = roadGenWaveFrequencyY = roadGenWaveScaleX = roadGenWaveScaleY = i = 0);
+    
+    // set random seed & time
+    startRandomSeed = randomSeed = Date.now();                          // random seed
+    time = roadGenSectionDistanceMax = 500;                             // start road with a straight part & init time
+    nextCheckPoint = checkPointDistance;                                // init next checkpoint
+    roadGenWidth = roadWidth;                                           // starting road with
+    
+    /////////////////////////////////////////////////////////////////////////////////////
+    // build the road with procedural generation
+    /////////////////////////////////////////////////////////////////////////////////////
+    
+    road = [];                                                          // array of road objects
+    for(; i < roadEnd*2; ++i)                                           // generate every section of road
+    {
+        // make wavy hills
+        x = Math.sin(i*roadGenWaveFrequencyX) * roadGenWaveScaleX;      // road X
+        y = Math.sin(i*roadGenWaveFrequencyY) * roadGenWaveScaleY;      // road Y
+        
+        // get or make the road gen segment
+        road[i] = road[i]? road[i] : {x:x, y:y, w:roadGenWidth};        // get road segment
+        
+        // apply taper
+        p = Clamp(roadGenSectionDistance / roadGenTaper, 0, 1);         // get taper percent
+        road[i].x = Lerp(p, road[i].x, x);                              // X pos and taper
+        road[i].y = Lerp(p, road[i].y, y);                              // Y pos and taper
+        road[i].z = i*roadSegmentLength;                                // Z pos
+        road[i].w = i > roadEnd ? 0 : Lerp(p, road[i].w, roadGenWidth); // check for road end, width and taper
+        road[i].a = road[i-1]? Math.atan2(road[i-1].y-road[i].y, roadSegmentLength) : 0; // pitch angle
+        
+        if (roadGenSectionDistance++ > roadGenSectionDistanceMax)       // check for end of section
+        {
+            // calculate difficulty percent
+            d = Min(1, i*roadSegmentLength/checkPointDistance/checkpointMaxDifficulty); // difficulty
+            
+            // randomize rotate settings
+            roadGenWidth = roadWidth*Random(1-d*.7,3-2*d);                // road width
+            roadGenWaveFrequencyX = Random(Lerp(d,0.01,.02));             // X frequency
+            roadGenWaveFrequencyY = Random(Lerp(d,0.01,.03));             // Y frequency
+            roadGenWaveScaleX = i > roadEnd ? 0 : Random(Lerp(d,.2,.5));  // X scale
+            roadGenWaveScaleY = Random(Lerp(d,1e3,2e3));                  // Y scale
+            
+            // apply taper and move back
+            worldHeading = roadGenTaper = Random(99,500)|0;            // randomize world heading and taper
+            roadGenSectionDistanceMax = roadGenTaper + Random(99,500); // randomize segment distance
+            i -= roadGenTaper;                                         // subtract taper
+            roadGenSectionDistance = 0;                                // reset section distance
+        }
+    }
+    
+    playerPos = new Vector3(road[0].x, road[0].y + playerHeight);      // set player pos to match road
+    playerPitchRoad = road[0].a;                                       // set player angle
+}
+    
+function Update()
+{
+    // start frame
+    if (snapshot) {c.width|0} else                                  // DEBUG REMOVE FROM MINFIED
+        c.width = window.innerWidth,c.height = window.innerHeight;  // clear the screen and set size
+    
+    if (!c || !c.width) // REMOVE FROM MINFIED
+    {
+        // fix bug on itch, wait for canvas before updating
+        requestAnimationFrame(Update);
+        return;
+    }
+    
+    UpdateDebugPre(); // DEBUG REMOVE FROM MINFIED
+    
+    /////////////////////////////////////////////////////////////////////////////////////
+    // update player - controls and physics
+    /////////////////////////////////////////////////////////////////////////////////////
+    
+    // get player road segment
+    playerRoadSegment = playerPos.z/roadSegmentLength|0;         // current player road segment 
+    playerRoadSegmentPercent = playerPos.z/roadSegmentLength%1;  // how far player is along current segment
+    
+    // get lerped values between last and current road segment
+    playerRoadX = Lerp(playerRoadSegmentPercent, road[playerRoadSegment].x, road[playerRoadSegment+1].x);
+    playerRoadY = Lerp(playerRoadSegmentPercent, road[playerRoadSegment].y, road[playerRoadSegment+1].y) + playerHeight;
+    roadPitch = Lerp(playerRoadSegmentPercent, road[playerRoadSegment].a, road[playerRoadSegment+1].a);
+    
+    playerVelocityLast = playerVelocity.Add(0);                                 // save last velocity
+    playerVelocity.y += gravity                                                 // gravity
+    playerVelocity.x *= lateralSpeedDamping;                                    // apply lateral damping
+    playerVelocity.z = Max(0, time ? forwardSpeedDamping*playerVelocity.z : 0); // apply damping, prevent moving backwards
+    playerPos = playerPos.Add(playerVelocity);                                  // add player velocity
+    
+    playerTurnAmount = (mouse.x/window.innerWidth*2-1) *         // update player turning and centripetal motion
+        Lerp(playerVelocity.z/playerMaxSpeed, turnControl, 0);   // lerp off turning as max speed approaches
+    playerVelocity.x +=                                          // update x velocity
+        playerVelocity.z * playerTurnAmount -                    // apply turn
+        playerVelocity.z ** 2 * centripetal * playerRoadX;       // apply centripetal force
+    playerPos.x = Clamp(playerPos.x, -maxPlayerX, maxPlayerX);   // limit player x position
+    
+    // check if on ground
+    if (playerPos.y < playerRoadY)
+    {
+        // bounce velocity against ground normal
+        playerPos.y = playerRoadY;                                                                // match y to ground plane
+        playerVelocity = new Vector3(0, Math.cos(roadPitch), Math.sin(roadPitch))                 // get ground normal
+            .Multiply(-playerBounce *                                                             // apply bounce
+               (Math.cos(roadPitch) * playerVelocity.y + Math.sin(roadPitch) * playerVelocity.z)) // dot of road and velocity
+            .Add(playerVelocity);                                                                 // add velocity
+        airFrame = 0;                                                                             // reset air grace frames
+
+        playerVelocity.z += 
+            mouseDown? playerBrake :                                // apply brake              
+            Lerp(playerVelocity.z/playerMaxSpeed, playerAccel, 0);  // apply accel
+        
+        if (Math.abs(playerPos.x) > road[playerRoadSegment].w)      // check if off road
+        {
+            playerVelocity.z *= offRoadSpeedDamping;                // slow down extra when offroad
+            playerPitchSpring += Math.sin(playerPos.z/99)**4/99;    // bump when offroad
+        }
+    }
+  
+    // update jump
+    if (airFrame++<6 && mouseDown && mouseUpFrames && mouseUpFrames<9 && time)  // check for jump
+        playerVelocity.y = playerJumpSpeed;                                     // apply jump velocity
+    mouseUpFrames = mouseDown? 0 : mouseUpFrames+1;                             // update mouse up frames for double click
+    a = (playerPos.y-playerRoadY)/99;                                           // calculate above ground percent
+    playerPitchSpringVelocity += Lerp(a,0,playerVelocity.y/4e4);                // pitch down with vertical velocity
+    
+    // update player pitch
+    playerPitchSpringVelocity += (playerVelocity.z - playerVelocityLast.z)/2e3; // pitch down with forward accel
+    playerPitchSpringVelocity -= playerPitchSpring * playerSpringConstant;      // apply pitch spring constant
+    playerPitchSpringVelocity *= pitchSpringDamping;                            // dampen pitch spring
+    playerPitchSpring += playerPitchSpringVelocity;                             // update pitch spring        
+    playerPitchRoad = Lerp(pitchLerp,playerPitchRoad,Lerp(a,-roadPitch,0));     // match pitch to road
+    playerPitch = playerPitchSpring + playerPitchRoad;                          // update player pitch
+    
+    /////////////////////////////////////////////////////////////////////////////////////
+    // draw background - sky, sun/moon, mountains, and horizon
+    /////////////////////////////////////////////////////////////////////////////////////
+    
+    // pre calculate projection scale, flip y because y+ is down on canvas
+    projectScale = (new Vector3(1, -1, 1)).Multiply(c.width/2/cameraDepth);                       // get projection scale
+    randomSeed = startRandomSeed;                                                                 // set start seed
+    worldHeading = ClampAngle(worldHeading + playerVelocity.z * playerRoadX * worldRotateScale);  // update world angle
+    cameraHeading = playerTurnAmount * cameraHeadingScale;                                        // turn camera with player 
+    cameraOffset = Math.sin(cameraHeading)/2;                                                     // apply heading with offset
+    
+    // draw sky
+    brightness = Math.cos(worldHeading);                                          // brighess from sun
+    horizon = c.height/2 - Math.tan(playerPitch) * projectScale.y;                // get horizion line
+    g = context.createLinearGradient(0,horizon-c.height/2,0,horizon);             // linear gradient for sky
+    g.addColorStop(0,LSHA(39+brightness*25,49+brightness*19,230-brightness*19));  // top sky color
+    g.addColorStop(1,LSHA(5,79,250-brightness*9));                                // bottom sky color
+    DrawPoly(c.width/2, 0, c.width/2, c.width/2, c.height, c.width/2, g);         // draw sky
+    
+    // draw sun and moon
+    for(i=2;i--;)                                                               // 0 is sun, 1 is moon
+    {
+        g = context.createRadialGradient(                                       // radial gradient for sun
+            x = c.width*(.5+Lerp(                                               // angle 0 is center
+                (worldHeading/Math.PI/2+.5+i/2)%1,                              // sun angle percent 
+                4, -4)-cameraOffset),                                           // sun x pos, move far away for wrap
+            y = horizon - c.height/3,                                           // sun y pos
+            c.width/25,                                                         // sun size
+            x, y, i?c.width/23:c.width);                                        // sun end pos & size
+        g.addColorStop(0, LSHA(i?70:99));                                       // sun start color
+        g.addColorStop(1, LSHA(0,0,0,0));                                       // sun end color
+        DrawPoly(c.width/2, 0, c.width/2, c.width/2, c.height, c.width/2, g);   // draw sun
+    }
+
+    // draw mountains
+    for(i = mountainCount; i--; )                                               // draw every mountain
+    {
+        a = ClampAngle(worldHeading+Random(19));                                // mountain random angle
+        lighting = Math.cos(a-worldHeading);                                    // mountain lighting
+        DrawPoly(
+            x = c.width*(.5+Lerp(a/Math.PI/2+.5, 4, -4)-cameraOffset),          // mountain x pos, move far away for wrap
+            y = horizon,                                                        // mountain base
+            w = Random(.2,.8)**2*c.height,                                      // mountain width
+            x+w*Random(-.5,.5),                                                 // random tip skew
+            y - Random(.5,.8)*w, 0,                                             // mountain height
+            LSHA(Random(15,25)+i/3-lighting*9,i/2+Random(19),Random(220,230))); // mountain color
+    }
+    
+    // draw horizon
+    DrawPoly(c.width/2, horizon, c.width/2, c.width/2, c.height, c.width/2,     // horizon pos & size
+        LSHA(25, 30, 95));                                                      // horizon color
+    
+    /////////////////////////////////////////////////////////////////////////////////////
+    // draw road and objects
+    /////////////////////////////////////////////////////////////////////////////////////
+    
+    // calcuate road x offsets and projections (iterate in reverse)
+    for(x = w = i = 0; i < drawDistance+1; )                             // for every section in draw range
+    {
+        // create road world position
+        p = new Vector3(                                                 // set road position
+            x += w += road[playerRoadSegment+i].x,                       // sum local road offsets
+            road[playerRoadSegment+i].y, road[playerRoadSegment+i].z)    // road y and z pos
+                .Add(playerPos.Multiply(-1));                            // subtract to get local space
+
+        p.x = p.x*Math.cos(cameraHeading) - p.z*Math.sin(cameraHeading); // rotate camera heading
+        
+        // tilt camera pitch
+        z = 1 / (p.z*Math.cos(playerPitch) - p.y*Math.sin(playerPitch)); // invert z for transform
+        p.y = p.y*Math.cos(playerPitch) - p.z*Math.sin(playerPitch);
+        p.z = z;
+        
+        // project road segment to canvas space
+        road[playerRoadSegment+i++].p =                 // set projected road point
+            p.Multiply(new Vector3(z, z, 1))            // projection
+            .Multiply(projectScale)                     // scale
+            .Add(new Vector3(c.width/2,c.height/2))     // center on canvas
+    }
+    
+    // draw the road segments
+    segment2 = road[playerRoadSegment+drawDistance];                            // store the last segment
+    for(i = drawDistance; i--; )                                                // iterate through the draw distance
+    {
+        segment1 = road[playerRoadSegment+i];                         
+        randomSeed = startRandomSeed + playerRoadSegment + i;                   // random seed for this segment
+        lighting = Math.sin(segment1.a) * Math.cos(worldHeading)*99;            // calculate segment lighting
+        p1 = segment1.p;                                                        // projected point
+        p2 = segment2.p;                                                        // last projected point
+        
+        // player object collision check
+        z = (Random(2)|0) * 400;                                                // object type & height
+        o = Random()>.2? 0 : 2*roadWidth * Random(10,-10) * Random(9);          // object position, 0 is no object
+        if (o && !segment1.h                                                    // object exists and was not hit
+            && Math.abs(playerPos.x - o) < 200                                  // player collison x
+            && Math.abs(playerPos.z + roadSegmentLength - segment1.z) < 200     // player collison z (check ahead)
+            && playerPos.y-playerHeight < segment1.y+150+z)                     // player y collision
+        {
+            playerVelocity = playerVelocity.Multiply(segment1.h = playerCollisionSlow); // stop player and mark object as hit
+        }
+        
+        if (p1.z < 1e5 && p1.z > 0)                                                 // check near and far clip
+        {
+            if (i % (Lerp(i/drawDistance,1,9)|0) == 0)                              // fade in road resolution
+            {
+                // ground
+                DrawPoly(c.width/2, p1.y, c.width/2,                                // ground top
+                    c.width/2, p2.y, c.width/2,                                     // ground bottom
+                    LSHA(25+lighting, 30, 95));                                     // ground color
+
+                // warning track
+                if (segment1.w > 400)                                               // no warning track if thin
+                    DrawPoly(p1.x, p1.y, p1.z*(segment1.w+warningTrackWidth),       // warning track top
+                        p2.x, p2.y, p2.z*(segment2.w+warningTrackWidth),            // warning track bottom
+                        LSHA(((i+playerRoadSegment)%19<9? 50: 20)+lighting));       // warning track stripe color
+                
+                // road
+                DrawPoly(p1.x, p1.y, p1.z*segment1.w,                               // road top
+                    p2.x, p2.y, p2.z*segment2.w,                                    // road bottom
+                    LSHA((segment1.z%checkPointDistance < 500 ? 70 : 7)+lighting)); // road color and checkpoint
+                    
+                // dashed lines
+                if (segment1.w > 300)                                               // no dash lines if very thin
+                    (i+playerRoadSegment)%9==0 && i < drawDistance/3 &&             // make dashes and skip if far out
+                        DrawPoly(p1.x, p1.y, p1.z*dashLineWidth,                    // dash lines top
+                        p2.x, p2.y, p2.z*dashLineWidth,                             // dash lines botom
+                        LSHA(70+lighting));                                         // dash lines color
+
+                segment2 = segment1;                                                // prep for next segment
+            }
+
+            // draw road object
+            if (o)                                                             // check for road object
+            {
+                a = Lerp(i/drawDistance, 4, 0);                                // fade in object alpha
+                if (z)                                                         // tree           
+                {
+                    DrawPoly(x = p1.x+p1.z * o, p1.y, p1.z*29,                 // trunk bottom
+                        x, p1.y-99*p1.z, p1.z*29,                              // trunk top
+                        LSHA(5+Random(9), 50+Random(9), 29+Random(9), a));     // trunk color
+                    DrawPoly(x, p1.y-Random(50,99)*p1.z, p1.z*Random(199,250), // leaves bottom
+                        x, p1.y-Random(600,800)*p1.z, 0,                       // leaves top
+                        LSHA(25+Random(9), 80+Random(9), 9+Random(29), a));    // leaves color
+                }
+                else                                                                           // rock
+                {
+                    DrawPoly(x = p1.x+p1.z * o, p1.y, p1.z*Random(200,250),                    // rock bottom
+                        x+p1.z*(Random(99,-99)), p1.y-Random(200,250)*p1.z, p1.z*Random(99),   // rock top
+                        LSHA(55+Random(9), 30+Random(9), 209+Random(9), a));                   // rock color
+                }
+            }
+        }
+    }
+    
+    UpdateDebugPost(); // DEBUG REMOVE FROM MINFIED
+    
+    /////////////////////////////////////////////////////////////////////////////////////
+    // draw and update time and checkpoints
+    /////////////////////////////////////////////////////////////////////////////////////
+    
+    if (playerPos.z > nextCheckPoint)          // crossed checkpoint
+    {
+        time += checkPointTime;                // add more time
+        nextCheckPoint += checkPointDistance;  // set next checkpoint
+        hueShift += 40;                        // shift hue
+    }
+    time = Clamp(time - 1/60, 0, maxTime);     // update and clamp time
+    
+    // show time
+    context.font = '7em"';                                // set font size
+    context.fillStyle = LSHA(99,0,0,.5);                  // set font color
+    context.fillText(time.toFixed(2), 9,89);              // draw time text
+    context.strokeText(time.toFixed(2), 9,89);            // outline time text
+
+    // show distance
+    context.textAlign = 'right';                          // set right alignment for distance
+    context.fillText(playerPos.z/1e3|0, c.width-9, 89);   // draw distance text
+    context.strokeText(playerPos.z/1e3|0, c.width-9, 89); // outline distance text
+    
+    // kick off next frame
+    requestAnimationFrame(Update);
+}
+    
+/////////////////////////////////////////////////////////////////////////////////////
+// math and helper functions
+/////////////////////////////////////////////////////////////////////////////////////
+    
+const LSHA       = (l, s=0, h=0, a=1) =>`hsl(${h+hueShift},${s}%,${l}%,${a})`;
+const Min        = (v, min)           => v<min ? v : min;
+const Max        = (v, max)           => v>max ? v : max;
+const Clamp      = (v, min, max)      => Min(Max(v, min), max);
+const Lerp       = (p, a, b)          => a + Clamp(p, 0, 1) * (b-a);
+const ClampAngle = a                  => (a+Math.PI) % (2*Math.PI) + (a+Math.PI<0? Math.PI : -Math.PI);
+const Random     = (max=1, min=0)     => Lerp((Math.sin(++randomSeed)+1)*1e5%1,min,max);
+   
+// simple 3d vector class
+class Vector3 
+{
+    constructor(x=0, y=0, z=0) { this.x = x; this.y = y; this.z = z }
+	Add(v)             { v = isNaN(v) ? v : new Vector3(v,v,v); return new Vector3( this.x + v.x, this.y + v.y, this.z + v.z); }
+	Multiply(v)        { v = isNaN(v) ? v : new Vector3(v,v,v); return new Vector3( this.x * v.x, this.y * v.y, this.z * v.z); }
+}
+    
+// draw a trapazoid shaped poly
+function DrawPoly(x1, y1, w1, x2, y2, w2, fillStyle) 
+{
+    context.beginPath(context.fillStyle = fillStyle);
+    context.lineTo(x1-w1|0, y1|0);
+    context.lineTo(x1+w1|0, y1|0);
+    context.lineTo(x2+w2|0, y2|0);
+    context.fill(context.lineTo(x2-w2|0, y2|0));
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+// mouse input
+/////////////////////////////////////////////////////////////////////////////////////
+
+let mouseDown     = 0; 
+let mouseUpFrames = 0;
+let mouse         = new Vector3(window.innerWidth/2);
+let mouseLockPos  = new Vector3();
+onmouseup   = e => mouseDown = 0;
+onmousedown = e =>
+{
+    mouseDown = 1;
+    if (usePointerLock && e.button == 0 && document.pointerLockElement !== c)
+    {
+        c.requestPointerLock = c.requestPointerLock || c.mozRequestPointerLock;
+        c.requestPointerLock();
+        mouseLockPos = new Vector3();
+    }
+}
+onmousemove = e => 
+{
+    if (!usePointerLock)
+    {
+        mouse = e; // dont use pointer lock for 2k version
+        return;
+    }
+    
+    if (document.pointerLockElement !== c)
+        return;
+    
+    // adjust for pointer lock 
+    mouseLockPos = mouseLockPos.Add(new Vector3(e.movementX, e.movementY));
+    mouseLockPos.x = Clamp(mouseLockPos.x, -window.innerWidth/2,  window.innerWidth/2);
+    mouseLockPos.y = Clamp(mouseLockPos.y, -window.innerHeight/2, window.innerHeight/2);
+    
+    // apply curve to input
+    const inputCurve = 1.5;
+    mouse = mouseLockPos.Add(0);
+    mouse.x /= window.innerWidth/2;
+    mouse.x = Math.sign(mouse.x)*(1-((1-Math.abs(mouse.x))**inputCurve));
+    mouse.x *= window.innerWidth/2;
+    mouse = mouse.Add(new Vector3(window.innerWidth/2, window.innerHeight/2));
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+// touch control
+/////////////////////////////////////////////////////////////////////////////////////
+
+if (typeof ontouchend != 'undefined')
+{
+    let ProcessTouch = e =>
+    {
+        e.preventDefault();
+        mouseDown = !(e.touches.length > 0);
+        if (mouseDown)
+            return;
+
+        // average all touch positions
+        let x = 0, y = 0;
+        for (let touch of e.touches)
+        {
+            x += touch.clientX;
+            y += touch.clientY;
+        }
+        mouse = {x:x/e.touches.length, y:y/e.touches.length};
+    }
+
+    c.addEventListener('touchstart',  ProcessTouch, false);
+    c.addEventListener('touchmove',   ProcessTouch, false);
+    c.addEventListener('touchcancel', ProcessTouch, false);
+    c.addEventListener('touchend',    ProcessTouch, false);
+}
+    
+/////////////////////////////////////////////////////////////////////////////////////
+// debug stuff
+/////////////////////////////////////////////////////////////////////////////////////
+
+let debugPrintLines;
+let snapshot;
+    
+function UpdateDebugPre()
+{
+    debugPrintLines = [];
+    
+    if (inputWasPushed[82]) // R = restart
+    {
+        mouseLockPos = new Vector3();
+        StartLevel(); 
+    }
+    
+    if (inputWasPushed[49]) // 1 = screenshot
+    {
+        snapshot = 1;
+        
+        // use 1080p resolution
+        c.width = 1920;
+        c.height = 1080;
+    }
+}
+    
+function UpdateDebugPost()
+{
+    if (snapshot)
+    {
+        SaveSnapshot();
+        snapshot = 0;
+    }
+    
+    UpdateInput();
+    
+    if (!debug)
+        return;
+    
+    UpdateFps();
+    
+    context.font='2em"';
+    for (i in debugPrintLines)
+    {
+        let line = debugPrintLines[i];
+        context.fillStyle = line.color;
+        context.fillText(line.text,c.width/2,35+35*i);
+    }
+}
+    
+function DebugPrint(text, color='#F00')
+{
+    if (!debug)
+        return;
+    
+    if (typeof text == 'object')
+        text += JSON.stringify(text);
+    
+    let line = {text:text, color:color};
+    debugPrintLines.push(line);
+}
+    
+function SaveSnapshot()
+{    
+    downloadLink.download="snapshot.png";
+    downloadLink.href=c.toDataURL("image/jpg").replace("image/jpg", "image/octet-stream");
+    downloadLink.click();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+// frame rate counter
+/////////////////////////////////////////////////////////////////////////////////////
+    
+let lastFpsMS = 0;
+let averageFps = 0;
+function UpdateFps()
+{
+    let ms = performance.now();
+    let deltaMS = ms - lastFpsMS;
+    lastFpsMS = ms;
+    
+    let fps = 1/(deltaMS/1e3);
+    averageFps = averageFps*.9 + fps*.1;
+    context.font='3em"';
+    context.fillStyle='#0007';
+    context.fillText(averageFps|0,c.width-90,c.height-40);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+// keyboard control
+/////////////////////////////////////////////////////////////////////////////////////
+
+let inputIsDown = [];
+let inputWasDown = [];
+let inputWasPushed = [];
+onkeydown = e => inputIsDown[e.keyCode] = 1;
+onkeyup   = e => inputIsDown[e.keyCode] = 0;
+function UpdateInput()
+{
+    inputWasPushed = inputIsDown.map((e,i) => e && !inputWasDown[i]);
+    inputWasDown = inputIsDown.slice();
+}
+    
+/////////////////////////////////////////////////////////////////////////////////////
+// init hue jumper
+/////////////////////////////////////////////////////////////////////////////////////
+   
+// startup and kick off update loop
+StartLevel();
+Update();
+    
+</script>
+</body>
+</html>
