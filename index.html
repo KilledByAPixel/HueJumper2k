@@ -453,13 +453,13 @@ function Update()
         time = Clamp(time - 1/60, 0, maxTime);       // update and clamp time
 
         // show time
-        context.fillText(Math.ceil(time), 9,89);     // draw time text
-        context.strokeText(Math.ceil(time), 9,89);   // draw time text outline
+        context.fillText(Math.ceil(time), 9,99);     // draw time text
+        context.strokeText(Math.ceil(time), 9,99);   // draw time text outline
 
         // show distance
         context.textAlign = 'right';                                   // set right alignment for distance
-        context.fillText(0|playerPos.z/1e3, c.width-9, 89);   // draw distance text
-        context.strokeText(0|playerPos.z/1e3, c.width-9, 89); // draw distance text outline
+        context.fillText(0|playerPos.z/1e3, c.width-9, 99);   // draw distance text
+        context.strokeText(0|playerPos.z/1e3, c.width-9, 99); // draw distance text outline
     }
     else
     {
