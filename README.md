@@ -13,6 +13,7 @@ The a.htm file when zipped with [advzip](https://www.advancemame.it/comp-readme.
 * Click = Brake
 * Double Click = Jump
 * R = Restart
+* 1 = Screenshot
 
 ## How to Play
 The road is randomly generated and different every time you play! You start with 20 seconds, pass checkpoints to get 10 more seconds. Avoid rocks and trees by swerving or jumping over them. The road ends at 1000, good luck!
