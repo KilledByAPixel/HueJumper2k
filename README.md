@@ -13,7 +13,7 @@ The a.htm file when zipped with [advzip](https://www.advancemame.it/comp-readme.
 * Realistic driving physics and collisions
 * Random level generation with increasing difficulty
 * Scenic views of sky, sun, moon, mountains, trees and rocks
-* Slow down and camera rumble when off road
+* Camera rumble and slow when off road
 * Checkpoint system with hue shifting
 * Time and distance display
 
