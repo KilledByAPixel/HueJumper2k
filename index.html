@@ -171,6 +171,7 @@ function StartLevel()
         road[i].z = i*roadSegmentLength;                                // Z pos
         road[i].w = i > roadEnd ? 0 : Lerp(p, road[i].w, roadGenWidth); // check for road end, width and taper
         road[i].a = road[i-1]? Math.atan2(road[i-1].y-road[i].y, roadSegmentLength) : 0; // pitch angle
+        road[i].o = Random()>.2? 0 : 2*roadWidth * Random(10,-10) * Random(9);  // object (tree or rock)
         
         if (roadGenSectionDistance++ > roadGenSectionDistanceMax)       // check for end of section
         {
@@ -363,17 +364,6 @@ function Update()
         p1 = segment1.p;                                                        // projected point
         p2 = segment2.p;                                                        // last projected point
         
-        // player object collision check
-        z = (Random(2)|0) * 400;                                                // object type & height
-        o = Random()>.2? 0 : 2*roadWidth * Random(10,-10) * Random(9);          // object position, 0 is no object
-        if (o && !segment1.h                                                    // object exists and was not hit
-            && Math.abs(playerPos.x - o) < 200                                  // player collison x
-            && Math.abs(playerPos.z + roadSegmentLength - segment1.z) < 200     // player collison z (check ahead)
-            && playerPos.y-playerHeight < segment1.y+150+z)                     // player y collision
-        {
-            playerVelocity = playerVelocity.Multiply(segment1.h = playerCollisionSlow); // stop player and mark object as hit
-        }
-        
         if (p1.z < 1e5 && p1.z > 0)                                                 // check near and far clip
         {
             if (i % (Lerp(i/drawDistance,1,9)|0) == 0)                              // fade in road resolution
@@ -404,13 +394,24 @@ function Update()
                 segment2 = segment1;                                                // prep for next segment
             }
 
-            // draw road object
-            if (o)                                                             // check for road object
+            // draw and update road object
+            if (segment1.o)                                                             // check for road object
             {
+                // player object collision check
+                z = (Random(2)|0) * 400;                                                // object type & height
+                if (!segment1.h
+                    && Math.abs(playerPos.x - segment1.o) < 200                         // player collison x
+                    && Math.abs(playerPos.z + roadSegmentLength - segment1.z) < 200     // player collison z (check ahead)
+                    && playerPos.y-playerHeight < segment1.y+150+z)                     // player y collision
+                {
+                    playerVelocity = playerVelocity.Multiply(segment1.h = playerCollisionSlow); // stop player and mark hit
+                }
+
+                // draw road object
                 a = Lerp(i/drawDistance, 4, 0);                                // fade in object alpha
                 if (z)                                                         // tree           
                 {
-                    DrawPoly(x = p1.x+p1.z * o, p1.y, p1.z*29,                 // trunk bottom
+                    DrawPoly(x = p1.x+p1.z * segment1.o, p1.y, p1.z*29,        // trunk bottom
                         x, p1.y-99*p1.z, p1.z*29,                              // trunk top
                         LSHA(5+Random(9), 50+Random(9), 29+Random(9), a));     // trunk color
                     DrawPoly(x, p1.y-Random(50,99)*p1.z, p1.z*Random(199,250), // leaves bottom
@@ -419,7 +420,7 @@ function Update()
                 }
                 else                                                                           // rock
                 {
-                    DrawPoly(x = p1.x+p1.z * o, p1.y, p1.z*Random(200,250),                    // rock bottom
+                    DrawPoly(x = p1.x+p1.z * segment1.o, p1.y, p1.z*Random(200,250),           // rock bottom
                         x+p1.z*(Random(99,-99)), p1.y-Random(200,250)*p1.z, p1.z*Random(99),   // rock top
                         LSHA(55+Random(9), 30+Random(9), 209+Random(9), a));                   // rock color
                 }
@@ -483,7 +484,8 @@ function DrawPoly(x1, y1, w1, x2, y2, w2, fillStyle)
     context.lineTo(x1-w1|0, y1|0);
     context.lineTo(x1+w1|0, y1|0);
     context.lineTo(x2+w2|0, y2|0);
-    context.fill(context.lineTo(x2-w2|0, y2|0));
+    context.lineTo(x2-w2|0, y2|0);
+    context.fill();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
