@@ -16,7 +16,7 @@ The a.htm file when zipped with [advzip](https://www.advancemame.it/comp-readme.
 * Procedurally generated mountain range
 * Random trees and rocks
 * Camera rumble and slow when off road
-* Checkpoint system, road markers, and hue shif
+* Checkpoint system, road markers, and hue shift
 * Time and distance display
 
 ![Screenshot](/screenshot.jpg)
