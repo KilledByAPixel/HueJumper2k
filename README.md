@@ -12,7 +12,7 @@ The a.htm file when zipped with [advzip](https://www.advancemame.it/comp-readme.
 * Retro style 3D rendering engine in full HD
 * Realistic driving physics and collisions
 * Random level generation with increasing difficulty
-* Sky with sun and moon and lighting effects the world
+* Gradient sky with sun and moon
 * Procedurally generated mountain range
 * Random trees and rocks
 * Camera rumble and slow when off road
