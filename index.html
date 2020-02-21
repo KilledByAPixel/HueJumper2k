@@ -231,7 +231,7 @@ function Update()
     playerVelocity.z = Max(0, time ? forwardSpeedDamping*playerVelocity.z : 0); // apply damping, prevent moving backwards
     playerPos = playerPos.Add(playerVelocity);                                  // add player velocity
     
-    playerTurnAmount = (mouse.x/window.innerWidth*2-1) *         // update player turning and centripetal motion
+    playerTurnAmount = (mouseX/window.innerWidth*2-1) *          // update player turning and centripetal motion
         Lerp(playerVelocity.z/playerMaxSpeed, turnControl, 0);   // lerp off turning as max speed approaches
     playerVelocity.x +=                                          // update x velocity
         playerVelocity.z * playerTurnAmount -                    // apply turn
@@ -494,8 +494,8 @@ function DrawPoly(x1, y1, w1, x2, y2, w2, fillStyle)
 
 let mouseDown     = 0; 
 let mouseUpFrames = 0;
-let mouse         = new Vector3(window.innerWidth/2);
-let mouseLockPos  = new Vector3();
+let mouseX        = window.innerWidth/2;
+let mouseLockX    = 0;
     
 onmouseup   = e => mouseDown = 0;
 onmousedown = e =>
@@ -505,7 +505,7 @@ onmousedown = e =>
     {
         c.requestPointerLock = c.requestPointerLock || c.mozRequestPointerLock;
         c.requestPointerLock();
-        mouseLockPos = new Vector3();
+        mouseLockX = 0;
     }
 }
 
@@ -513,7 +513,7 @@ onmousemove = e =>
 {
     if (!usePointerLock)
     {
-        mouse = e; // dont use pointer lock for 2k version
+        mouseX = e.x; // dont use pointer lock for 2k version
         return;
     }
     
@@ -521,17 +521,16 @@ onmousemove = e =>
         return;
     
     // adjust for pointer lock 
-    mouseLockPos = mouseLockPos.Add(new Vector3(e.movementX, e.movementY));
-    mouseLockPos.x = Clamp(mouseLockPos.x, -window.innerWidth/2,  window.innerWidth/2);
-    mouseLockPos.y = Clamp(mouseLockPos.y, -window.innerHeight/2, window.innerHeight/2);
+    mouseLockX += e.movementX;
+    mouseLockX = Clamp(mouseLockX, -window.innerWidth/2,  window.innerWidth/2);
     
     // apply curve to input
     const inputCurve = 1.5;
-    mouse = mouseLockPos.Add(0);
-    mouse.x /= window.innerWidth/2;
-    mouse.x = Math.sign(mouse.x)*(1-((1-Math.abs(mouse.x))**inputCurve));
-    mouse.x *= window.innerWidth/2;
-    mouse = mouse.Add(new Vector3(window.innerWidth/2, window.innerHeight/2));
+    mouseX = mouseLockX;
+    mouseX /= window.innerWidth/2;
+    mouseX = Math.sign(mouseX) * (1-(1-Math.abs(mouseX))**inputCurve);
+    mouseX *= window.innerWidth/2;
+    mouseX += window.innerWidth/2;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -554,7 +553,7 @@ if (typeof ontouchend != 'undefined')
             x += touch.clientX;
             y += touch.clientY;
         }
-        mouse = {x:x/e.touches.length, y:y/e.touches.length};
+        mouseX = x/e.touches.length;
     }
 
     c.addEventListener('touchstart',  ProcessTouch, false);
@@ -576,7 +575,7 @@ function UpdateDebugPre()
     
     if (inputWasPushed[82]) // R = restart
     {
-        mouseLockPos = new Vector3();
+        mouseLockX = 0;
         StartLevel(); 
     }
     
