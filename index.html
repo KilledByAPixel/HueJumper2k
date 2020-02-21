@@ -36,6 +36,7 @@ Minification notes
 
 -->
 <title>Hue Jumper</title>
+<meta charset="utf-8">
 <body bgcolor=#000>
 <canvas id=c style='touch-action:none;position:absolute;left:0px;top:0px;width:100%;height:100%'></canvas>
 <a hidden id=downloadLink></a>
@@ -141,7 +142,7 @@ function StartLevel()
     
     // reset everything to 0
     playerVelocity = new Vector3( playerPitchSpring = playerPitchSpringVelocity = playerPitchRoad =  
-        hueShift = roadGenSectionDistance = roadGenTaper = 
+        mouseWasPressed = hueShift = roadGenSectionDistance = roadGenTaper = 
         roadGenWaveFrequencyX = roadGenWaveFrequencyY = roadGenWaveScaleX = roadGenWaveScaleY = i = 0);
     
     // set random seed & time
@@ -250,13 +251,13 @@ function Update()
         airFrame = 0;                                                                             // reset air grace frames
 
         playerVelocity.z += 
-            mouseDown? playerBrake :                                // apply brake              
-            Lerp(playerVelocity.z/playerMaxSpeed, playerAccel, 0);  // apply accel
+            mouseDown? playerBrake :                                                // apply brake              
+            Lerp(playerVelocity.z/playerMaxSpeed, mouseWasPressed*playerAccel, 0);  // apply accel
         
-        if (Math.abs(playerPos.x) > road[playerRoadSegment].w)      // check if off road
+        if (Math.abs(playerPos.x) > road[playerRoadSegment].w)                      // check if off road
         {
-            playerVelocity.z *= offRoadSpeedDamping;                // slow down extra when offroad
-            playerPitchSpring += Math.sin(playerPos.z/99)**4/99;    // bump when offroad
+            playerVelocity.z *= offRoadSpeedDamping;                                // slow down extra when offroad
+            playerPitchSpring += Math.sin(playerPos.z/99)**4/99;                    // bump when offroad
         }
     }
   
@@ -436,25 +437,37 @@ function Update()
     /////////////////////////////////////////////////////////////////////////////////////
     // draw and update time and checkpoints
     /////////////////////////////////////////////////////////////////////////////////////
-    
+
     if (playerPos.z > nextCheckPoint)          // crossed checkpoint
     {
         time += checkPointTime;                // add more time
         nextCheckPoint += checkPointDistance;  // set next checkpoint
-        hueShift += 40;                        // shift hue
+        hueShift += 36;                        // shift hue
     }
-    time = Clamp(time - 1/60, 0, maxTime);     // update and clamp time
-    
-    // show time
-    context.font = '7em"';                                // set font size
-    context.fillStyle = LSHA(99,0,0,.5);                  // set font 
-    context.fillText(Math.ceil(time), 9,89);              // draw time text
-    context.strokeText(Math.ceil(time), 9,89);            // draw time text outline
 
-    // show distance
-    context.textAlign = 'right';                                   // set right alignment for distance
-    context.fillText(Math.ceil(playerPos.z/1e3), c.width-9, 89);   // draw distance text
-    context.strokeText(Math.ceil(playerPos.z/1e3), c.width-9, 89); // draw distance text outline
+    context.font = '8em"';                     // set font size
+    context.fillStyle = LSHA(99,0,0,.5);       // set font 
+
+    if (mouseWasPressed)
+    {
+        time = Clamp(time - 1/60, 0, maxTime);       // update and clamp time
+
+        // show time
+        context.fillText(Math.ceil(time), 9,89);     // draw time text
+        context.strokeText(Math.ceil(time), 9,89);   // draw time text outline
+
+        // show distance
+        context.textAlign = 'right';                                   // set right alignment for distance
+        context.fillText(0|playerPos.z/1e3, c.width-9, 89);   // draw distance text
+        context.strokeText(0|playerPos.z/1e3, c.width-9, 89); // draw distance text outline
+    }
+    else
+    {
+        // show title
+        context.textAlign = 'center';                    // set center alignment for distance
+        context.fillText('𝙃𝙐𝙀 𝙅𝙐𝙈𝙋𝙀𝙍', c.width/2, 99);   // draw title text
+        context.strokeText('𝙃𝙐𝙀 𝙅𝙐𝙈𝙋𝙀𝙍', c.width/2, 99); // draw distance title outline
+    }
     
     // kick off next frame
     requestAnimationFrame(Update);
@@ -495,15 +508,19 @@ function DrawPoly(x1, y1, w1, x2, y2, w2, fillStyle)
 // mouse input
 /////////////////////////////////////////////////////////////////////////////////////
 
-let mouseDown     = 0; 
-let mouseUpFrames = 0;
-let mouseX        = window.innerWidth/2;
-let mouseLockX    = 0;
+let mouseDown       = 0; 
+let mouseWasPressed = 0;
+let mouseUpFrames   = 0;
+let mouseX          = window.innerWidth/2;
+let mouseLockX      = 0;
+let touchMode       = 0;
     
 onmouseup   = e => mouseDown = 0;
 onmousedown = e =>
 {
-    mouseDown = 1;
+    if (mouseWasPressed)
+        mouseDown = 1;
+    mouseWasPressed = 1;
     if (usePointerLock && e.button == 0 && document.pointerLockElement !== c)
     {
         c.requestPointerLock = c.requestPointerLock || c.mozRequestPointerLock;
@@ -546,6 +563,7 @@ if (typeof ontouchend != 'undefined')
     {
         e.preventDefault();
         mouseDown = !(e.touches.length > 0);
+        mouseWasPressed = 1;
         if (mouseDown)
             return;
 
