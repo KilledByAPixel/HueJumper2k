@@ -4,6 +4,36 @@
 HUE JUMPER - By Frank Force
 Low fi retro inspired endless runner in only 2 kilobytes!
 
+Features
+* Retro style 3D rendering engine in full HD
+- Realistic driving physics and collisions
+- Random level generation with increasing difficulty
+- Gradient sky with sun and moon
+- Procedurally generated mountain range
+- Random trees and rocks
+- Camera rumble and slow when off road
+- Checkpoint system, road markers, and hue shift
+- Time and distance display
+
+Minification notes
+- remove all debug stuff, pointer lock and touch control
+- move start level to bottom outside function
+- google closure https://xem.github.io/terser-online/
+- terser https://xem.github.io/terser-online/
+- golf code
+  - getContext`2d`
+  - window.innerWidth to c.width
+  - replace functions and replace with =>
+  - use string templates
+  - use default params instead of void checks
+  - use ** instead of math.pow
+  - get rid of vars when possible
+  - many other tiny things
+- wrap the code in an onload string
+- zip with adv zip -z -4 -i 1000 
+- say a payer to the gods of tinycode
+- the result should be under 2k
+
 -->
 <title>Hue Jumper</title>
 <body bgcolor=#000>
@@ -14,7 +44,7 @@ Low fi retro inspired endless runner in only 2 kilobytes!
 'use strict';
     
 // debug settings
-let debug = 1;
+let debug = 0;
 let usePointerLock = 1;
 
 // constants (will be replaced during minification)
@@ -464,6 +494,7 @@ let mouseDown     = 0;
 let mouseUpFrames = 0;
 let mouse         = new Vector3(window.innerWidth/2);
 let mouseLockPos  = new Vector3();
+    
 onmouseup   = e => mouseDown = 0;
 onmousedown = e =>
 {
@@ -475,6 +506,7 @@ onmousedown = e =>
         mouseLockPos = new Vector3();
     }
 }
+
 onmousemove = e => 
 {
     if (!usePointerLock)
