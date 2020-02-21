@@ -2,8 +2,8 @@
 Low fi retro inspired endless runner in only 2 kilobytes!
 By Frank Force 2019
 
-# [LIVE DEMO ENHANCED VERSION](https://killedbyapixel.github.io/HueJumper2k/)
-# [LIVE DEMO 2K VERSION](https://killedbyapixel.github.io/HueJumper2k/a.htm)
+# [LIVE DEMO - ENHANCED VERSION](https://killedbyapixel.github.io/HueJumper2k/)
+# [LIVE DEMO - 2K VERSION](https://killedbyapixel.github.io/HueJumper2k/a.htm)
 
 This entire game is a single html file, under 2k when zipped, made for 2kPlus Jam!
 
