@@ -8,6 +8,15 @@ This entire game is a single html file, under 2k when zipped, made for 2kPlus Ja
 
 The a.htm file when zipped with [advzip](https://www.advancemame.it/comp-readme.html) should be under 2k.
 
+## Controls
+* Mouse = Steer
+* Click = Brake
+* Double Click = Jump
+* R = Restart
+
+## How to Play
+The road is randomly generated and different every time you play! You start with 20 seconds, pass checkpoints to get 10 more seconds. Avoid rocks and trees by swerving or jumping over them. The road ends at 1000, good luck!
+
 ## Features
 * Retro style 3D rendering engine in full HD
 * Realistic driving physics and collisions
