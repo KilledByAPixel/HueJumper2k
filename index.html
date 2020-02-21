@@ -70,7 +70,7 @@ const centripetal = .002;             // how much to pull player on turns
 const forwardSpeedDamping = .999;     // dampen player z speed
 const lateralSpeedDamping = .7;       // dampen player x speed
 const offRoadSpeedDamping = .98;      // more damping when off road
-const playerJumpSpeed = 25;           // z speed for jump
+const playerJumpSpeed = 25;           // z speed added for jump
 const gravity = -1;                   // gravity to apply in y axis
 const playerBounce = 1.2;             // bounce elasticity (2 is full bounce, 1 is none)
 const pitchLerp = .1;                 // speed that camera pitch changes
@@ -262,7 +262,10 @@ function Update()
   
     // update jump
     if (airFrame++<6 && mouseDown && mouseUpFrames && mouseUpFrames<9 && time)  // check for jump
-        playerVelocity.y = playerJumpSpeed;                                     // apply jump velocity
+    {
+        playerVelocity.y += playerJumpSpeed;                                    // apply jump velocity
+        airFrame = 9;                                                           // prevent jumping again
+    }
     mouseUpFrames = mouseDown? 0 : mouseUpFrames+1;                             // update mouse up frames for double click
     a = (playerPos.y-playerRoadY)/99;                                           // calculate above ground percent
     playerPitchSpringVelocity += Lerp(a,0,playerVelocity.y/4e4);                // pitch down with vertical velocity
@@ -444,14 +447,14 @@ function Update()
     
     // show time
     context.font = '7em"';                                // set font size
-    context.fillStyle = LSHA(99,0,0,.5);                  // set font color
-    context.fillText(time.toFixed(2), 9,89);              // draw time text
-    context.strokeText(time.toFixed(2), 9,89);            // outline time text
+    context.fillStyle = LSHA(99,0,0,.5);                  // set font 
+    context.fillText(Math.ceil(time), 9,89);              // draw time text
+    context.strokeText(Math.ceil(time), 9,89);            // draw time text outline
 
     // show distance
-    context.textAlign = 'right';                          // set right alignment for distance
-    context.fillText(playerPos.z/1e3|0, c.width-9, 89);   // draw distance text
-    context.strokeText(playerPos.z/1e3|0, c.width-9, 89); // outline distance text
+    context.textAlign = 'right';                                   // set right alignment for distance
+    context.fillText(Math.ceil(playerPos.z/1e3), c.width-9, 89);   // draw distance text
+    context.strokeText(Math.ceil(playerPos.z/1e3), c.width-9, 89); // draw distance text outline
     
     // kick off next frame
     requestAnimationFrame(Update);
