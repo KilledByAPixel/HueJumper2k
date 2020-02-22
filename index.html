@@ -453,10 +453,7 @@ function Update()
         nextCheckPoint += checkPointDistance;  // set next checkpoint
         hueShift += 36;                        // shift hue
     }
-
-    context.font = '8em impact';               // set font size
-    context.fillStyle = LSHA(99,0,0,.5);       // set font 
-
+    
     if (mouseWasPressed)
     {
         DrawText(time = Math.ceil(Clamp(time - 1/60, 0, maxTime)), 9); // show & update time
@@ -507,10 +504,10 @@ function DrawPoly(x1, y1, w1, x2, y2, w2, fillStyle)
 // draw outlined text
 function DrawText(text, pos) 
 {
-    context.font = '8em impact';          // set font size
+    context.font = '9em impact';          // set font size
     context.fillStyle = LSHA(99,0,0,.5);  // set font 
-    context.fillText(text, pos, 119);     // fill text
-    context.strokeText(text, pos, 119);   // outline text
+    context.fillText(text, pos, 129);     // fill text
+    context.strokeText(text, pos, 129);   // outline text
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
