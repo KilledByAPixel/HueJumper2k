@@ -110,7 +110,7 @@ function StartLevel()
     /////////////////////////////////////////////////////////////////////////////////////
 
     // set random seed & time
-    let roadGenSectionDistanceMax = 500;        // start road with a straight part & init time
+    let roadGenSectionDistanceMax = 0;          // init end of section distance
     let roadGenWidth = roadWidth;               // starting road width
     let roadGenSectionDistance = 0;             // distance left for this section
     let roadGenTaper = 0;                       // length of taper
@@ -124,6 +124,25 @@ function StartLevel()
     // generate the road
     for(let i = 0; i < roadEnd*2; ++i)                                        // build road past end
     {
+        if (roadGenSectionDistance++ > roadGenSectionDistanceMax)             // check for end of section
+        {
+            // calculate difficulty percent
+            const difficulty = Min(1, i*roadSegmentLength/checkPointDistance/checkpointMaxDifficulty); // difficulty
+            
+            // randomize rotate settings
+            roadGenWidth = roadWidth*Random(1-difficulty*.7, 3-2*difficulty);        // road width
+            roadGenWaveFrequencyX = Random(Lerp(difficulty, .01, .02));              // X frequency
+            roadGenWaveFrequencyY = Random(Lerp(difficulty, .01, .03));              // Y frequency
+            roadGenWaveScaleX = i > roadEnd ? 0 : Random(Lerp(difficulty, .2, .5));  // X scale
+            roadGenWaveScaleY = Random(Lerp(difficulty, 1e3, 2e3));                  // Y scale
+            
+            // apply taper and move back
+            roadGenTaper = Random(99, 500)|0;                           // randomize taper
+            roadGenSectionDistanceMax = roadGenTaper + Random(99, 500); // randomize segment distance
+            i -= roadGenTaper;                                          // subtract taper
+            roadGenSectionDistance = 0;                                 // reset section distance
+        }
+        
         // make wavy hills
         const x = Math.sin(i*roadGenWaveFrequencyX) * roadGenWaveScaleX;      // road X
         const y = Math.sin(i*roadGenWaveFrequencyY) * roadGenWaveScaleY;      // road Y
@@ -141,25 +160,6 @@ function StartLevel()
         // get pitch angle and object pos
         road[i].a = road[i-1]? Math.atan2(road[i-1].y-road[i].y, roadSegmentLength) : 0; // pitch angle
         road[i].o = Random()<.2 && i > 9? 2*roadWidth * Random(10,-10) * Random(9) : 0;  // object (tree or rock)
-        
-        if (roadGenSectionDistance++ > roadGenSectionDistanceMax)                // check for end of section
-        {
-            // calculate difficulty percent
-            const difficulty = Min(1, i*roadSegmentLength/checkPointDistance/checkpointMaxDifficulty); // difficulty
-            
-            // randomize rotate settings
-            roadGenWidth = roadWidth*Random(1-difficulty*.7,3-2*difficulty);       // road width
-            roadGenWaveFrequencyX = Random(Lerp(difficulty,0.01,.02));             // X frequency
-            roadGenWaveFrequencyY = Random(Lerp(difficulty,0.01,.03));             // Y frequency
-            roadGenWaveScaleX = i > roadEnd ? 0 : Random(Lerp(difficulty,.2,.5));  // X scale
-            roadGenWaveScaleY = Random(Lerp(difficulty,1e3,2e3));                  // Y scale
-            
-            // apply taper and move back
-            worldHeading = roadGenTaper = Random(99,500)|0;            // randomize world heading and taper
-            roadGenSectionDistanceMax = roadGenTaper + Random(99,500); // randomize segment distance
-            i -= roadGenTaper;                                         // subtract taper
-            roadGenSectionDistance = 0;                                // reset section distance
-        }
     }  
     
     /////////////////////////////////////////////////////////////////////////////////////
@@ -176,7 +176,7 @@ function StartLevel()
         hueShift = 0
     );
     playerPos = new Vector3(road[0].x, road[0].y + playerHeight);   // set player pos to match road
-    playerPitchRoad = road[0].a;                                    // set player angle to match road
+    worldHeading = randomSeed;                                      // randomize world heading
     nextCheckPoint = checkPointDistance;                            // init next checkpoint
     time = maxTime;                                                 // set the starting time
 }
@@ -240,8 +240,7 @@ function Update()
     playerVelocity.z = Max(0, time ? forwardDamping*playerVelocity.z : 0); // apply damping, prevent moving backwards
     playerPos = playerPos.Add(playerVelocity);                             // add player velocity
     
-    const playerTurnAmount = (mouseX/window.innerWidth*2-1) *              // update player turning and centrifugal motion
-        Lerp(playerVelocity.z/playerMaxSpeed, playerTurnControl, 0);       // lerp off turning as max speed approaches
+    const playerTurnAmount = Lerp(playerVelocity.z/playerMaxSpeed, mouseX * playerTurnControl, 0); // turning
     playerVelocity.x +=                                          // update x velocity
         playerVelocity.z * playerTurnAmount -                    // apply turn
         playerVelocity.z ** 2 * centrifugal * playerRoadX;       // apply centrifugal force
@@ -332,7 +331,7 @@ function Update()
         DrawPoly(
             x = c.width*(.5+Lerp(angle/Math.PI/2+.5, 4, -4)-cameraOffset),      // mountain x pos, move far away for wrap
             y = horizon,                                                        // mountain base
-            w = Random(.2,.8)**2*c.height,                                      // mountain width
+            w = Random(.2,.8)**2*c.width/2,                                     // mountain width
             x+w*Random(-.5,.5),                                                 // random tip skew
             y - Random(.5,.8)*w, 0,                                             // mountain height
             LSHA(Random(15,25)+i/3-lighting*9,i/2+Random(19),Random(220,230))); // mountain color
@@ -455,28 +454,19 @@ function Update()
         hueShift += 36;                        // shift hue
     }
 
-    context.font = '8em"';                     // set font size
+    context.font = '8em impact';               // set font size
     context.fillStyle = LSHA(99,0,0,.5);       // set font 
 
     if (mouseWasPressed)
     {
-        time = Clamp(time - 1/60, 0, maxTime);       // update and clamp time
-
-        // show time
-        context.fillText(Math.ceil(time), 9,99);     // draw time text
-        context.strokeText(Math.ceil(time), 9,99);   // draw time text outline
-
-        // show distance
-        context.textAlign = 'right';                          // set right alignment for distance
-        context.fillText(0|playerPos.z/1e3, c.width-9, 99);   // draw distance text
-        context.strokeText(0|playerPos.z/1e3, c.width-9, 99); // draw distance text outline
+        DrawText(time = Math.ceil(Clamp(time - 1/60, 0, maxTime)), 9); // show & update time
+        context.textAlign = 'right';                                   // set right alignment for distance
+        DrawText(0|playerPos.z/1e3, c.width-9);                        // show distance
     }
     else
     {
-        // show title
-        context.textAlign = 'center';                     // set center alignment for distance
-        context.fillText('𝙃𝙐𝙀 𝙅𝙐𝙈𝙋𝙀𝙍', c.width/2, 99);   // draw title text
-        context.strokeText('𝙃𝙐𝙀 𝙅𝙐𝙈𝙋𝙀𝙍', c.width/2, 99); // draw distance title outline
+        context.textAlign = 'center';         // set center alignment for title
+        DrawText('HUE JUMPER', c.width/2);   // draw title text
     }
     
     // kick off next frame
@@ -514,6 +504,15 @@ function DrawPoly(x1, y1, w1, x2, y2, w2, fillStyle)
     context.fill();
 }
 
+// draw outlined text
+function DrawText(text, pos) 
+{
+    context.font = '8em impact';          // set font size
+    context.fillStyle = LSHA(99,0,0,.5);  // set font 
+    context.fillText(text, pos, 119);     // fill text
+    context.strokeText(text, pos, 119);   // outline text
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 // mouse input
 /////////////////////////////////////////////////////////////////////////////////////
@@ -521,7 +520,7 @@ function DrawPoly(x1, y1, w1, x2, y2, w2, fillStyle)
 let mouseDown       = 0; 
 let mouseWasPressed = 0;
 let mouseUpFrames   = 0;
-let mouseX          = window.innerWidth/2;
+let mouseX          = 0;
 let mouseLockX      = 0;
 let touchMode       = 0;
     
@@ -543,7 +542,7 @@ onmousemove = e =>
 {
     if (!usePointerLock)
     {
-        mouseX = e.x;
+        mouseX = e.x/window.innerWidth*2-1
         return;
     }
     
@@ -561,6 +560,7 @@ onmousemove = e =>
     mouseX = Math.sign(mouseX) * (1-(1-Math.abs(mouseX))**inputCurve);
     mouseX *= window.innerWidth/2;
     mouseX += window.innerWidth/2;
+    mouseX = mouseX/window.innerWidth*2-1
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -587,6 +587,7 @@ if (typeof ontouchend != 'undefined')
             y += touch.clientY;
         }
         mouseX = x/e.touches.length;
+        mouseX = mouseX/window.innerWidth*2-1
     }
 
     c.addEventListener('touchstart',  ProcessTouch, false);
