@@ -120,7 +120,7 @@ function StartLevel()
     road = [];                                  // clear list of road segments
     
     // generate the road
-    for(let i = 0; i < roadEnd*2; ++i)                                        // generate every section of road
+    for(let i = 0; i < roadEnd*2; ++i)                                        // build road past end
     {
         // make wavy hills
         const x = Math.sin(i*roadGenWaveFrequencyX) * roadGenWaveScaleX;      // road X
@@ -130,11 +130,11 @@ function StartLevel()
         road[i] = road[i]? road[i] : {x:x, y:y, w:roadGenWidth};              // get road segment
         
         // apply taper
-        const p = Clamp(roadGenSectionDistance / roadGenTaper, 0, 1);            // get taper percent
-        road[i].x = Lerp(p, road[i].x, x);                                       // X pos and taper
-        road[i].y = Lerp(p, road[i].y, y);                                       // Y pos and taper
-        road[i].z = i*roadSegmentLength;                                         // Z pos
-        road[i].w = i > roadEnd ? 0 : Lerp(p, road[i].w, roadGenWidth);          // check for road end, width and taper
+        const p = Clamp(roadGenSectionDistance / roadGenTaper, 0, 1);         // get taper percent
+        road[i].x = Lerp(p, road[i].x, x);                                    // X pos and taper
+        road[i].y = Lerp(p, road[i].y, y);                                    // Y pos and taper
+        road[i].z = i*roadSegmentLength;                                      // Z pos
+        road[i].w = i > roadEnd ? 0 : Lerp(p, road[i].w, roadGenWidth);       // check for road end, width and taper
         
         // get pitch angle and object pos
         road[i].a = road[i-1]? Math.atan2(road[i-1].y-road[i].y, roadSegmentLength) : 0; // pitch angle
@@ -614,7 +614,7 @@ function UpdateDebugPost()
     UpdateFps();
     
     context.font='2em"';
-    for (i in debugPrintLines)
+    for (let i in debugPrintLines)
     {
         let line = debugPrintLines[i];
         context.fillStyle = line.color;
