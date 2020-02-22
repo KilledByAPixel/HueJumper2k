@@ -100,6 +100,8 @@ let nextCheckPoint;             // distance of next checkpoint
 let hueShift;                   // current hue shift for all hsl colors
 let road;                       // the list of road segments
 let time;                       // time left before game over
+let lastUpdate = 0;             // time of last update
+let timeBuffer = 0;             // frame rate adjustment
 
 function StartLevel()
 { 
@@ -181,6 +183,28 @@ function StartLevel()
     
 function Update()
 {
+    // time regulation, in case running faster then 60 fps, though it causes judder REMOVE FROM MINFIED
+    const now = performance.now();
+    if (lastUpdate)
+    {
+        // limit to 60 fps
+        const timeDelta = 1/60;
+        const delta = now - lastUpdate;
+        if (timeBuffer + delta < 0)
+        {
+            // running fast
+            requestAnimationFrame(Update);
+            return;
+        }
+        
+        // update time buffer
+        timeBuffer += delta;
+        timeBuffer -= timeDelta * 1e3;
+        if (timeBuffer > timeDelta * 1e3)
+            timeBuffer = 0; // if running too slow
+    }
+    lastUpdate = now;
+    
     // start frame
     if (snapshot) {c.width|0} else                                  // DEBUG REMOVE FROM MINFIED
         c.width = window.innerWidth,c.height = window.innerHeight;  // clear the screen and set size
