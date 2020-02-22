@@ -30,6 +30,7 @@ The road is randomly generated and different every time. You start with 20 secon
 * Random trees and rocks
 * Camera rumble and slow when off road
 * Checkpoint system, road markers, and hue shift
-* Time and distance display
+* Time and distance HUD
+* Start screen with title display
 
 ![Screenshot](/screenshot.jpg)
