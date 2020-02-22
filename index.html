@@ -192,7 +192,7 @@ function Update()
         return;
     }
     
-    if (usePointerLock && document.pointerLockElement !== c)        // set mouse down if pointer lock released
+    if (usePointerLock && document.pointerLockElement !== c && !touchMode) // set mouse down if pointer lock released
         mouseDown = 1; 
     
     UpdateDebugPre(); // DEBUG REMOVE FROM MINFIED
@@ -550,6 +550,8 @@ if (typeof ontouchend != 'undefined')
         e.preventDefault();
         mouseDown = !(e.touches.length > 0);
         mouseWasPressed = 1;
+        touchMode = 1;
+        
         if (mouseDown)
             return;
 
