@@ -9,7 +9,7 @@ This entire game is a single html file, under 2k when zipped, made for 2kPlus Ja
 
 This repository contains both the minified 2k code and a cleaned up version with some added features.
 
-The a.htm file when zipped with [advzip](https://www.advancemame.it/comp-readme.html) should be under 2k.
+The a.htm file when zipped with advzip should be under 2k.
 
 ## Controls
 * Mouse = Steer
