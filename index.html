@@ -209,7 +209,7 @@ function Update()
     if (snapshot) {c.width|0} else                                  // DEBUG REMOVE FROM MINFIED
         c.width = window.innerWidth,c.height = window.innerHeight;  // clear the screen and set size
     
-    if (!c || !c.width) // REMOVE FROM MINFIED
+    if (!c.width) // REMOVE FROM MINFIED
     {
         // fix bug on itch, wait for canvas before updating
         requestAnimationFrame(Update);
