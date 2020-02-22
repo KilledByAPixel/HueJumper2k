@@ -86,7 +86,7 @@ const checkPointDistance = 1e5;      // how far between checkpoints
 const checkpointMaxDifficulty = 9;   // how many checkpoints before max difficulty
 const roadEnd = 1e4;                 // how many sections until end of the road
     
-// game variables  
+// global game variables  
 let playerPos;                  // player position 3d vector
 let playerVelocity;             // player velocity 3d vector
 let playerPitchSpring;          // spring for player pitch bounce
@@ -191,6 +191,9 @@ function Update()
         requestAnimationFrame(Update);
         return;
     }
+    
+    if (usePointerLock && document.pointerLockElement !== c)        // set mouse down if pointer lock released
+        mouseDown = 1; 
     
     UpdateDebugPre(); // DEBUG REMOVE FROM MINFIED
     
