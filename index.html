@@ -395,7 +395,7 @@ function Update()
                 // road
                 DrawPoly(p1.x, p1.y, p1.z*segment1.w,                               // road top
                     p2.x, p2.y, p2.z*segment2.w,                                    // road bottom
-                    LSHA((segment1.z%checkPointDistance < 500 ? 70 : 7)+lighting)); // road color and checkpoint
+                    LSHA((segment1.z%checkPointDistance < 300 ? 70 : 7)+lighting)); // road color and checkpoint
                     
                 // dashed lines
                 if (segment1.w > 300)                                               // no dash lines if very thin
