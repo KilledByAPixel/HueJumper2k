@@ -21,7 +21,7 @@ The a.htm file when zipped with advzip should be under 2k.
 ## How to Play
 The road is randomly generated and different every time. You start with 20 seconds, pass checkpoints to get 10 more seconds. Avoid rocks and trees by swerving or jumping over them. The road ends at 1000, good luck!
 
-## Features
+## 2k Version Features
 * Retro style 3D rendering engine in full HD
 * Realistic driving physics and collisions
 * Random level generation with increasing difficulty
@@ -32,5 +32,12 @@ The road is randomly generated and different every time. You start with 20 secon
 * Checkpoint system, road markers, and hue shift
 * Time and distance HUD
 * Start screen with title display
+
+## Enhanced Version Features
+* pointer lock mouse control
+* touch support
+* screen shot button
+* fps display option
+* some debug code
 
 ![Screenshot](/screenshot.jpg)
