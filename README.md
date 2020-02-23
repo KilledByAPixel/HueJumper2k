@@ -38,7 +38,6 @@ The road is randomly generated and different every time. You start with 20 secon
 * Touch support
 * Screen shot button
 * Fps display option
-* Some debug code
 * Restart button
 
 ![Screenshot](/screenshot.jpg)
