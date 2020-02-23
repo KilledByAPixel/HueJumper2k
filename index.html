@@ -315,7 +315,7 @@ function Update()
             x = c.width*(.5+Lerp(                                               // angle 0 is center
                 (worldHeading/Math.PI/2+.5+i/2)%1,                              // sun angle percent 
                 4, -4)-cameraOffset),                                           // sun x pos, move far away for wrap
-            y = horizon - c.height/3,                                           // sun y pos
+            y = horizon - c.width/5,                                            // sun y pos
             c.width/25,                                                         // sun size
             x, y, i?c.width/23:c.width);                                        // sun end pos & size
         g.addColorStop(0, LSHA(i?70:99));                                       // sun start color
