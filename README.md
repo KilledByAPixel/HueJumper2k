@@ -34,10 +34,11 @@ The road is randomly generated and different every time. You start with 20 secon
 * Start screen with title display
 
 ## Enhanced Version Features
-* pointer lock mouse control
-* touch support
-* screen shot button
-* fps display option
-* some debug code
+* Pointer lock mouse control
+* Touch support
+* Screen shot button
+* Fps display option
+* Some debug code
+* Restart button
 
 ![Screenshot](/screenshot.jpg)
