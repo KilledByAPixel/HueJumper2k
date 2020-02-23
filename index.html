@@ -133,7 +133,7 @@ function StartLevel()
             roadGenWidth = roadWidth*Random(1-difficulty*.7, 3-2*difficulty);        // road width
             roadGenWaveFrequencyX = Random(Lerp(difficulty, .01, .02));              // X frequency
             roadGenWaveFrequencyY = Random(Lerp(difficulty, .01, .03));              // Y frequency
-            roadGenWaveScaleX = i > roadEnd ? 0 : Random(Lerp(difficulty, .2, .5));  // X scale
+            roadGenWaveScaleX = i > roadEnd ? 0 : Random(Lerp(difficulty, .2, .6));  // X scale
             roadGenWaveScaleY = Random(Lerp(difficulty, 1e3, 2e3));                  // Y scale
             
             // apply taper and move back
@@ -415,7 +415,7 @@ function Update()
                 if (!segment1.h                                                     // prevent hitting the same object
                     && Math.abs(playerPos.x - segment1.o) < 200                     // player collison x
                     && Math.abs(playerPos.z + roadSegmentLength - segment1.z) < 200 // check ahead player collison z 
-                    && playerPos.y-playerHeight < segment1.y+150+height)            // player y collision
+                    && playerPos.y-playerHeight < segment1.y+200+height)            // player y collision
                 {
                     playerVelocity = playerVelocity.Multiply(segment1.h = playerCollisionSlow); // stop player and mark hit
                 }
@@ -435,7 +435,7 @@ function Update()
                 {
                     DrawPoly(x = p1.x+p1.z * segment1.o, p1.y, p1.z*Random(200,250),           // rock bottom
                         x+p1.z*(Random(99,-99)), p1.y-Random(200,250)*p1.z, p1.z*Random(99),   // rock top
-                        LSHA(55+Random(9), 30+Random(9), 209+Random(9), alpha));               // rock color
+                        LSHA(50+Random(19), 25+Random(19), 209+Random(9), alpha));             // rock color
                 }
             }
         }
@@ -456,7 +456,7 @@ function Update()
     
     if (mouseWasPressed)
     {
-        DrawText(time = Math.ceil(Clamp(time - 1/60, 0, maxTime)), 9); // show & update time
+        DrawText(Math.ceil(time = Clamp(time - 1/60, 0, maxTime)), 9); // show & update time
         context.textAlign = 'right';                                   // set right alignment for distance
         DrawText(0|playerPos.z/1e3, c.width-9);                        // show distance
     }
