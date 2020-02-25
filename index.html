@@ -58,7 +58,8 @@ const warningTrackWidth = 150;       // with of road plus warning track
 const dashLineWidth = 9;             // width of the dashed line in the road
 const maxPlayerX = 2e3;              // player can not move this far from center of road
 const mountainCount = 30;            // how many mountains are there
-    
+const timeDelta = 1/60;              // inverse frame rate
+
 // player settings
 const playerHeight = 150;            // how high is player above ground
 const playerMaxSpeed = 300;          // limit max player speed
@@ -188,7 +189,6 @@ function Update()
     if (lastUpdate)
     {
         // limit to 60 fps
-        const timeDelta = 1/60;
         const delta = now - lastUpdate;
         if (timeBuffer + delta < 0)
         {
@@ -285,6 +285,13 @@ function Update()
     playerPitchSpring += playerPitchSpringVelocity;                                   // update pitch spring        
     playerPitchRoad = Lerp(pitchLerp, playerPitchRoad, Lerp(airPercent,-roadPitch,0));// match pitch to road
     const playerPitch = playerPitchSpring + playerPitchRoad;                          // update player pitch
+    
+    if (playerPos.z > nextCheckPoint)          // crossed checkpoint
+    {
+        time += checkPointTime;                // add more time
+        nextCheckPoint += checkPointDistance;  // set next checkpoint
+        hueShift += 36;                        // shift hue
+    }
     
     /////////////////////////////////////////////////////////////////////////////////////
     // draw background - sky, sun/moon, mountains, and horizon
@@ -413,9 +420,9 @@ function Update()
                 // player object collision check
                 const height = (Random(2)|0) * 400;                                 // object type & height
                 if (!segment1.h                                                     // prevent hitting the same object
-                    && Math.abs(playerPos.x - segment1.o) < 200                     // player collison x
-                    && Math.abs(playerPos.z + roadSegmentLength - segment1.z) < 200 // check ahead player collison z 
-                    && playerPos.y-playerHeight < segment1.y+200+height)            // player y collision
+                    && Math.abs(playerPos.x - segment1.o) < 200                     // x collison
+                    && Math.abs(playerPos.z + roadSegmentLength - segment1.z) < 200 // z collison + check ahead
+                    && playerPos.y-playerHeight < segment1.y+200+height)            // y collision + object height
                 {
                     playerVelocity = playerVelocity.Multiply(segment1.h = playerCollisionSlow); // stop player and mark hit
                 }
@@ -444,25 +451,18 @@ function Update()
     UpdateDebugPost(); // DEBUG REMOVE FROM MINFIED
     
     /////////////////////////////////////////////////////////////////////////////////////
-    // draw and update time and checkpoints
+    // draw and update time
     /////////////////////////////////////////////////////////////////////////////////////
-
-    if (playerPos.z > nextCheckPoint)          // crossed checkpoint
-    {
-        time += checkPointTime;                // add more time
-        nextCheckPoint += checkPointDistance;  // set next checkpoint
-        hueShift += 36;                        // shift hue
-    }
     
     if (mouseWasPressed)
     {
-        DrawText(Math.ceil(time = Clamp(time - 1/60, 0, maxTime)), 9); // show & update time
-        context.textAlign = 'right';                                   // set right alignment for distance
-        DrawText(0|playerPos.z/1e3, c.width-9);                        // show distance
+        DrawText(Math.ceil(time = Clamp(time - timeDelta, 0, maxTime)), 9); // show and update time
+        context.textAlign = 'right';                                        // set right alignment for distance
+        DrawText(0|playerPos.z/1e3, c.width-9);                             // show distance
     }
     else
     {
-        context.textAlign = 'center';         // set center alignment for title
+        context.textAlign = 'center';        // set center alignment for title
         DrawText('HUE JUMPER', c.width/2);   // draw title text
     }
     
