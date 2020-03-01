@@ -1,4 +1,4 @@
-# 𝙃𝙐𝙀 𝙅𝙐𝙈𝙋𝙀𝙍
+# Hue Jumper
 Low fi retro inspired endless runner in only 2 kilobytes!
 By Frank Force 2019
 
