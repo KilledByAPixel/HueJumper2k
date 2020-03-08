@@ -4,6 +4,7 @@ By Frank Force 2019
 
 # [LIVE DEMO - ENHANCED VERSION](https://killedbyapixel.github.io/HueJumper2k/)
 # [LIVE DEMO - 2K VERSION](https://killedbyapixel.github.io/HueJumper2k/a.htm)
+# [TECHNICAL EXPLANTION](http://frankforce.com/?p=7427)
 
 This entire game is a single html file, under 2k when zipped, made for 2kPlus Jam!
 
