@@ -119,11 +119,21 @@ DrawPoly=(x1, y1, w1, x2, y2, w2, fillStyle)=>
 // draw outlined hud text
 DrawText=(text, posX)=>
 {
+    // scale text so it works in tiny CodePen iframe
+    const size = c.height/79;
+    context.font = size+'em impact';         // set font size
+    context.fillStyle = LSHA(99,0,0,.5);     // set font color
+    context.fillText(text, posX, size*14);   // fill text
+    context.lineWidth = size/2.5;            // line width
+    context.strokeText(text, posX, size*14); // outline text
+  
+    /*
     context.font = '9em impact';         // set font size
     context.fillStyle = LSHA(99,0,0,.5); // set font color
     context.fillText(text, posX, 129);   // fill text
     context.lineWidth = 3;               // line width
     context.strokeText(text, posX, 129); // outline text
+    */
 }
 
 //////////////////////////////////////////////////////////////////
@@ -273,16 +283,17 @@ pitchSpring += pitchSpringSpeed;
 pitchRoad = Lerp(pitchLerp, pitchRoad, Lerp(airPercent,-roadA,0));
 playerPitch = pitchSpring + pitchRoad;
 
-if (position.z > nextCheckPoint)        // crossed checkpoint
+// update heading
+heading = ClampAngle(heading + velocity.z*roadX*worldRotateScale);
+cameraHeading = turn * cameraTurnScale;
+
+// was checkpoint crossed?
+if (position.z > nextCheckPoint)
 {
   time += checkPointTime;               // add more time
   nextCheckPoint += checkPointDistance; // set next checkpoint
   hueShift += 36;                       // shift hue
 }
-
-// update heading
-heading = ClampAngle(heading + velocity.z*roadX*worldRotateScale);
-cameraHeading = turn * cameraTurnScale;
 
 //////////////////////////////////////////////////////////////////
 // draw background - sky, sun/moon, mountains, and horizon
@@ -291,7 +302,7 @@ cameraHeading = turn * cameraTurnScale;
 // clear the screen and set size
 c.width = window.innerWidth, c.height = window.innerHeight;
 
-// pre calculate projection scale, flip y
+// calculate projection scale, flip y
 projectScale = (new Vec3(1,-1,1)).Multiply(c.width/2/cameraDepth);
 
 // get horizon, offset, and light amount
